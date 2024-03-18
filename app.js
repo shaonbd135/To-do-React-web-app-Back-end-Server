@@ -5,6 +5,7 @@ const saltRounds = 10;
 const User = require('./models/user.model');
 const jwt = require('jsonwebtoken');
 const passport = require('passport');
+const Task = require('./models/task.model');
 require('./config/passportJwt');
 require('dotenv').config();
 require('./config/database');
@@ -106,6 +107,132 @@ app.post('/login', async (req, res) => {
     }
 
 })
+
+app.post('/create-task', passport.authenticate('jwt', { session: false }),
+    async (req, res) => {
+
+        const { taskName, description, dueDate, username } = req.body;
+        try {
+            const userMatch = await User.findOne({ username });
+            if (!userMatch) {
+                return res.status(400).send({
+                    status: 400,
+                    success: false,
+                    message: 'User does not exist'
+                })
+            }
+            const newTask = new Task({
+                username: userMatch.username,
+                taskName: taskName,
+                description: description,
+                dueDate: dueDate
+            });
+
+            await newTask.save();
+            res.status(200).send({
+                status: 200,
+                success: true,
+                message: 'Task created successfully'
+            })
+
+        }
+        catch (err) {
+            res.status(500).send({
+                status: 500,
+                success: false,
+                message: 'Server Error'
+            })
+        }
+    }
+)
+
+app.get('/tasks', passport.authenticate('jwt', { session: false }),
+    async (req, res) => {
+        const username = req.user.username;
+        try {
+            const tasks = await Task.find({ username: username });
+            return res.status(200).send({
+                status: 200,
+                success: true,
+                tasks: tasks
+            })
+
+        }
+        catch (err) {
+            return res.status(500).send({
+                status: 500,
+                success: false,
+                message: 'Server Error'
+            })
+        }
+
+    })
+
+app.patch('/update-task', passport.authenticate('jwt', { session: false }), async (req, res) => {
+
+    const { id, isDone } = req.body;
+    try {
+        const task = await Task.findOne({ _id: id });
+        if (!task) {
+            return res.status(400).send({
+                status: 400,
+                success: false,
+                message: 'Task does not exist'
+            })
+        }
+        task.isDone = isDone;
+        await task.save();
+        return res.status(200).send({
+            status: 200,
+            success: true,
+            message: 'Task updated successfully'
+        })
+    }
+    catch (err) {
+        console.log(err)
+        return res.status(500).send({
+            status: 500,
+            success: false,
+            message: 'Server Error'
+        })
+        
+    }
+})
+
+app.delete('/delete-task/:id', passport.authenticate('jwt', { session: false }), async (req, res) => {
+    const { id } = req.params;
+    const username = req.user.username; // Get authenticated user's username
+
+    try {
+        const task = await Task.findOne({ _id: id, username: username });
+        if (!task) {
+            return res.status(404).json({
+                status: 404,
+                success: false,
+                message: 'Task not found or does not belong to this user'
+            });
+        }
+      
+        await task.deleteOne({ _id: id });
+
+        return res.status(200).json({
+            status: 200,
+            success: true,
+            message: 'Task deleted successfully'
+        });
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({
+            status: 500,
+            success: false,
+            message: 'Server Error'
+        });
+    }
+});
+
+
+
+
 
 app.get('/profile', passport.authenticate('jwt', { session: false }),
     function (req, res) {
