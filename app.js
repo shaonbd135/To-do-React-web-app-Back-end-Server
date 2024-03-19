@@ -195,7 +195,47 @@ app.patch('/update-task', passport.authenticate('jwt', { session: false }), asyn
             success: false,
             message: 'Server Error'
         })
-        
+
+    }
+})
+
+app.patch('/edit-task', passport.authenticate('jwt', { session: false }), async (req, res) => {
+
+    const { id, taskName, description, dueDate } = req.body;
+
+    try {
+        const task = await Task.findOne({ _id: id });
+        if (!task) {
+            return res.status(400).send({
+                status: 400,
+                success: false,
+                message: 'Task does not exist'
+            })
+        }     
+        if(taskName) {
+            task.taskName = taskName
+        }
+        if(description) {
+            task.description = description
+        }
+        if(dueDate) {
+            task.dueDate = dueDate
+        }
+        await task.save();
+        return res.status(200).send({
+            status: 200,
+            success: true,
+            message: 'Task updated successfully'
+        })
+    }
+    catch (err) {   
+        console.log(err)   
+        return res.status(500).send({
+            status: 500,
+            success: false,
+            message: 'Server Error'
+        })
+
     }
 })
 
@@ -212,7 +252,7 @@ app.delete('/delete-task/:id', passport.authenticate('jwt', { session: false }),
                 message: 'Task not found or does not belong to this user'
             });
         }
-      
+
         await task.deleteOne({ _id: id });
 
         return res.status(200).json({
