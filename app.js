@@ -20,8 +20,8 @@ app.use(passport.initialize());
 
 //home Route
 
-app.get('/', (req, res) => {
-    res.send('This is my To Do App Server');
+app.get('/',  (req, res) => {
+    res.send('This is Saidurs To Do App Server');
 })
 
 
@@ -211,14 +211,14 @@ app.patch('/edit-task', passport.authenticate('jwt', { session: false }), async 
                 success: false,
                 message: 'Task does not exist'
             })
-        }     
-        if(taskName) {
+        }
+        if (taskName) {
             task.taskName = taskName
         }
-        if(description) {
+        if (description) {
             task.description = description
         }
-        if(dueDate) {
+        if (dueDate) {
             task.dueDate = dueDate
         }
         await task.save();
@@ -228,8 +228,8 @@ app.patch('/edit-task', passport.authenticate('jwt', { session: false }), async 
             message: 'Task updated successfully'
         })
     }
-    catch (err) {   
-        console.log(err)   
+    catch (err) {
+        console.log(err)
         return res.status(500).send({
             status: 500,
             success: false,
@@ -270,10 +270,6 @@ app.delete('/delete-task/:id', passport.authenticate('jwt', { session: false }),
     }
 });
 
-
-
-
-
 app.get('/profile', passport.authenticate('jwt', { session: false }),
     function (req, res) {
         return res.status(200).send({
@@ -288,6 +284,112 @@ app.get('/profile', passport.authenticate('jwt', { session: false }),
 
     }
 );
+
+app.patch('/update-profile', passport.authenticate('jwt', { session: false }), async (req, res) => {
+
+    const { newUsername, currentUsername, name } = req.body;
+
+    try {
+        const user = await User.findOne({ username: currentUsername });
+        if (!user) {
+            return res.status(400).send({
+                status: 400,
+                success: false,
+                message: 'User does not exist'
+            })
+        }
+        if (name) {
+            user.name = name
+        }
+        if (newUsername) {
+            if (await User.findOne({ username: newUsername })) {
+                return res.status(400).send({
+                    status: 400,
+                    success: false,
+                    message: 'Username already exists'
+                })
+            }
+            const findPreviousTask = await Task.find({ username: currentUsername });
+            if (findPreviousTask) {
+                const updatePriviousTask = await Task.updateMany({ username: currentUsername }, { $set: { username: newUsername } });
+                if (!updatePriviousTask) {
+                    return res.status(400).send({
+                        status: 400,
+                        success: false,
+                        message: 'Something went wrong, please try again later'
+                    })
+                }
+            }
+
+            user.username = newUsername
+
+        }
+        await user.save();
+        return res.status(200).send({
+            status: 200,
+            success: true,
+            message: 'Profile updated successfully',
+            user: {
+                id: user._id,
+                username: user.username,
+                name: user.name
+            }
+        })
+
+    }
+    catch (err) {
+        res.status(500).send({
+            status: 500,
+            success: false,
+            message: 'Server Error'
+        }
+        )
+    }
+})
+
+app.patch('/update-password', passport.authenticate('jwt', { session: false }), async (req, res) => {
+
+    const { username, currentPassword, newPassword } = req.body;
+
+    try {
+
+        const user = await User.findOne({ username: username });
+        if (!user) {
+            return res.status(400).send({
+                status: 400,
+                success: false,
+                message: 'User does not exist'
+            })
+        }
+        const isMatch = await bcrypt.compare(currentPassword, user.password);
+        if (!isMatch) {
+            return res.status(400).send({
+                status: 400,
+                success: false,
+                message: 'Incorrect password'
+            })
+        }
+
+        const newPass = await bcrypt.hash(newPassword, saltRounds);
+        if (newPass) {
+            user.password = newPass
+        }
+        await user.save();
+        return res.status(200).send({
+            status: 200,
+            success: true,
+            message: 'Password updated successfully'
+        })
+    }
+    catch (err) {
+
+        return res.status(500).send({
+            status: 500,
+            success: false,
+            message: 'Server Error'
+        })
+    }
+})
 
 
 
