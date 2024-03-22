@@ -7,4 +7,5 @@ mongoose.connect(process.env.DB_URl)
     })
     .catch((err) => {
         console.log(err);
+        process.exit(1);
     })
