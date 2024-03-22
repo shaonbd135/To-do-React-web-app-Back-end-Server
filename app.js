@@ -7,6 +7,7 @@ const User = require('./models/user.model');
 const jwt = require('jsonwebtoken');
 const passport = require('passport');
 const Task = require('./models/task.model');
+const mongoose = require('mongoose');
 require('./config/database');
 require('./config/passportJwt');
 
