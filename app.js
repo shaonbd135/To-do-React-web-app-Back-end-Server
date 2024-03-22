@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const bcrypt = require('bcrypt');
@@ -6,9 +7,10 @@ const User = require('./models/user.model');
 const jwt = require('jsonwebtoken');
 const passport = require('passport');
 const Task = require('./models/task.model');
-require('./config/passportJwt');
-require('dotenv').config();
 require('./config/database');
+require('./config/passportJwt');
+
+
 
 const app = express();
 
