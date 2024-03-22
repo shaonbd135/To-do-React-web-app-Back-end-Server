@@ -20,11 +20,9 @@ app.use(passport.initialize());
 
 //home Route
 
-app.get('/',  (req, res) => {
+app.get('/', (req, res) => {
     res.send('This is Saidurs To Do App Server');
 })
-
-
 app.post('/register', async (req, res) => {
     const { name, username, password } = req.body;
     try {
@@ -63,9 +61,7 @@ app.post('/register', async (req, res) => {
 
 app.post('/login', async (req, res) => {
     const { username, password } = req.body;
-
     try {
-
         const user = await User.findOne({ username });
         if (!user) {
             return res.status(400).send({
@@ -73,7 +69,6 @@ app.post('/login', async (req, res) => {
                 message: 'User does not exist'
             })
         }
-
         const isMatch = await bcrypt.compare(password, user.password);
 
         if (!isMatch) {
@@ -82,13 +77,11 @@ app.post('/login', async (req, res) => {
                 message: 'Incorrect password'
             })
         }
-
         const secretKey = process.env.SECRET_KEY;
         const payload = {
             id: user._id,
             username: user.username
         }
-
         const token = jwt.sign(payload, secretKey, {
             expiresIn: '2d'
         })
@@ -286,9 +279,8 @@ app.get('/profile', passport.authenticate('jwt', { session: false }),
 );
 
 app.patch('/update-profile', passport.authenticate('jwt', { session: false }), async (req, res) => {
-
-    const { newUsername, currentUsername, name } = req.body;
-
+    const { id, currentUsername, name } = req.body;
+    const rawNewUsername = req.body.newUsername;
     try {
         const user = await User.findOne({ username: currentUsername });
         if (!user) {
@@ -301,13 +293,17 @@ app.patch('/update-profile', passport.authenticate('jwt', { session: false }), a
         if (name) {
             user.name = name
         }
-        if (newUsername) {
-            if (await User.findOne({ username: newUsername })) {
-                return res.status(400).send({
-                    status: 400,
-                    success: false,
-                    message: 'Username already exists'
-                })
+        if (rawNewUsername) {
+            const newUsername = rawNewUsername.trim();
+            const userExists = await User.findOne({ username: newUsername })
+            if (userExists) {
+                if (userExists._id.toString() !== id) {
+                    return res.status(400).send({
+                        status: 400,
+                        success: false,
+                        message: 'Username already exists'
+                    })
+                }
             }
             const findPreviousTask = await Task.find({ username: currentUsername });
             if (findPreviousTask) {
